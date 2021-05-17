@@ -17,11 +17,13 @@ import axios from "axios";
 
 // Constants -- Almacena los datos del API aceptados por los reducers
 const initialData = { // almacena el estado que se inicia limpio
-    array: [],       // el tipo de dato que se va a recibir. en este caso, un array de pokemons
+    array: [],        // el tipo de dato que se va a recibir. en este caso, un array de pokemons
+    offset: 0         // añadir esta propiedad para poder seleccionar el offset
 }
 
 // Tipos
 const GET_POKEMONS_SUCCESS = 'GET_POKEMONS_SUCCESS';  // Envía los pokemons al array
+const GET_POKEMONS_OFFSET_SUCCESS = 'GET_POKEMONS_OFFSET_SUCCESS';
 
 // Reducers -- Acepta la lista de datos del API y los envía a las constantes o estados
 export default function pokeReducer(state = initialData, action) {
@@ -35,13 +37,15 @@ export default function pokeReducer(state = initialData, action) {
     switch (action.type) {
         case GET_POKEMONS_SUCCESS: // Si se dispara esta acción, se añaden los results al estado
             return {...state, array: action.payload};// {} abrir un objeto, ... añadirlo al actual
+        case GET_POKEMONS_OFFSET_SUCCESS:
+            return {...state, array: action.payload.array, offset: action.payload.offset};
         default:
             return state
     }
 
 }
 // Actions -- Llama al API
-export const getPokemonsAction = () => async (dispatch, getState) => {
+export const getPokemonsAction = () => async (dispatch) => {
     /**
      * - Esta es la función que ejecuta la acción de añadir los pokemon al array
      * - Se trata de una función de flecha que retorna otra función de flecha:
@@ -50,7 +54,7 @@ export const getPokemonsAction = () => async (dispatch, getState) => {
      *         para poderse ejecutar y en este caso, los campos van vacíos ()
      *      2. En la segunda función de flecha se reciben siempre dos parámetros:
      *        -> dispatch para activar el reducer
-     *        -> getState obtener initialData
+     *        -> getState que devuelve el estado del poke. Muestra el array y el offset
      *      3. Como se van a realizar llamadas a un API, se utiliza async con try & catch
      *         y se importa axios
      */
@@ -60,6 +64,25 @@ export const getPokemonsAction = () => async (dispatch, getState) => {
             type: GET_POKEMONS_SUCCESS,
             payload: res.data.results // results es la key del array del API donde se guardan los pokemons
         })
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+export const getPokemonsOffsetAction = (setOffset) => async (dispatch, getState) => {
+    const offset = getState().pokemons.offset;
+    const next = offset + setOffset;
+    try {
+        const res = await axios.get('https://pokeapi.co/api/v2/pokemon?offset=' + next + '&limit=20')
+        dispatch({
+            type: GET_POKEMONS_OFFSET_SUCCESS,
+            payload: {
+                array: res.data.results,
+                offset: next
+            }
+
+        })
+        console.log(res.data.results);
     } catch (error) {
         console.log(error);
     }
